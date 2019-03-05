@@ -1,92 +1,91 @@
 ##############################################
 ################ VARIABLES ###################
 ##############################################
-variable "region" {}
+variable "region"             {}
+variable "subscription_id"    {}
+variable "small_instance"     {}
+variable "large_instance"     {}
 
-variable "subscription_id" {}
-variable "small_instance" {}
-variable "large_instance" {}
-variable "resource_group" {}
 
 # Configure the Microsoft Azure Provider
 provider "azurerm" {
-  subscription_id = "${var.subscription_id}"
+    subscription_id = "${var.subscription_id}"
 }
+
 
 # Create a resource group if it doesn’t exist
 resource "azurerm_resource_group" "igition2019lab" {
-  name     = "igition2019lab"
-  location = "${var.region}"
+    name     = "igition2019lab"
+    location = "${var.region}"
 
-  tags {
-    environment = "igition2019lab"
-  }
+    tags {
+        environment = "igition2019lab"
+    }
 }
-
 # Network Securiy Group
 resource "azurerm_network_security_group" "Default_NSG" {
-  name                = "Default_NSG"
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
+    name                = "Default_NSG"
+    location            = "${var.region}"
+    resource_group_name = "${azurerm_resource_group.igition2019lab.name}"
 
-  security_rule {
-    name                       = "SSH"
-    priority                   = 1001
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "*"
-    source_port_range          = "*"
-    destination_port_range     = "3389"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
+    security_rule {
+        name                       = "SSH"
+        priority                   = 1001
+        direction                  = "Inbound"
+        access                     = "Allow"
+        protocol                   = "*"
+        source_port_range          = "*"
+        destination_port_range     = "3389"
+        source_address_prefix      = "*"
+        destination_address_prefix = "*"
+    }
 }
 
 # Create virtual network
 resource "azurerm_virtual_network" "GOTnet" {
-  name                = "GOTnet"
-  address_space       = ["10.0.0.0/15"]
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
+    name                = "GOTnet"
+    address_space       = ["10.0.0.0/15"]
+    location            = "${var.region}"
+    resource_group_name = "${azurerm_resource_group.igition2019lab.name}"
 
-  tags {
-    environment = "igition2019lab"
-  }
+    tags {
+        environment = "igition2019lab"
+    }
 }
 
 resource "azurerm_virtual_network" "GOTnet2" {
-  name                = "GOTnet2"
-  address_space       = ["10.2.0.0/15"]
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
+    name                = "GOTnet2"
+    address_space       = ["10.2.0.0/15"]
+    location            = "${var.region}"
+    resource_group_name = "${azurerm_resource_group.igition2019lab.name}"
 
-  tags {
-    environment = "igition2019lab"
-  }
+    tags {
+        environment = "igition2019lab"
+    }
 }
 
 # Create subnet
 resource "azurerm_subnet" "Highgarden" {
-  name                 = "Highgarden"
-  resource_group_name  = "${var.resource_group}"
-  virtual_network_name = "${azurerm_virtual_network.GOTnet.name}"
-  address_prefix       = "10.1.0.0/24"
+    name                 = "Highgarden"
+    resource_group_name  = "${azurerm_resource_group.igition2019lab.name}"
+    virtual_network_name = "${azurerm_virtual_network.GOTnet.name}"
+    address_prefix       = "10.1.0.0/24"
 }
 
 # Create subnet
 resource "azurerm_subnet" "TheSevenKingdoms" {
-  name                 = "TheSevenKingdoms"
-  resource_group_name  = "${var.resource_group}"
-  virtual_network_name = "${azurerm_virtual_network.GOTnet2.name}"
-  address_prefix       = "10.2.0.0/24"
+    name                 = "TheSevenKingdoms"
+    resource_group_name  = "${azurerm_resource_group.igition2019lab.name}"
+    virtual_network_name = "${azurerm_virtual_network.GOTnet2.name}"
+    address_prefix       = "10.2.0.0/24"
 }
 
 # Create subnet
 resource "azurerm_subnet" "NorthVale" {
-  name                 = "NorthVale"
-  resource_group_name  = "${var.resource_group}"
-  virtual_network_name = "${azurerm_virtual_network.GOTnet2.name}"
-  address_prefix       = "10.3.0.0/24"
+    name                 = "NorthVale"
+    resource_group_name  = "${azurerm_resource_group.igition2019lab.name}"
+    virtual_network_name = "${azurerm_virtual_network.GOTnet2.name}"
+    address_prefix       = "10.3.0.0/24"
 }
 
 #####################################
@@ -94,15 +93,14 @@ resource "azurerm_subnet" "NorthVale" {
 #####################################
 resource "azurerm_subnet" "GatewaySubnet" {
   name                 = "GatewaySubnet"
-  resource_group_name  = "${var.resource_group}"
+  resource_group_name  = "${azurerm_resource_group.igition2019lab.name}"
   virtual_network_name = "${azurerm_virtual_network.GOTnet2.name}"
   address_prefix       = "10.2.254.0/24"
 }
-
 resource "azurerm_public_ip" "GOTnet2-VPN-pub" {
   name                = "GOTnet2-VPN-pub"
   location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
+  resource_group_name = "${azurerm_resource_group.igition2019lab.name}"
 
   allocation_method = "Dynamic"
 }
@@ -110,14 +108,14 @@ resource "azurerm_public_ip" "GOTnet2-VPN-pub" {
 resource "azurerm_virtual_network_gateway" "GOTnet2-VPN" {
   name                = "GOTnet2-VPN"
   location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
+  resource_group_name = "${azurerm_resource_group.igition2019lab.name}"
 
   type     = "Vpn"
   vpn_type = "RouteBased"
 
   active_active = false
   enable_bgp    = false
-  sku           = "VpnGw1"
+  sku           = "VpnGw2"
 
   ip_configuration {
     name                          = "vnetGatewayConfig"
@@ -127,8 +125,8 @@ resource "azurerm_virtual_network_gateway" "GOTnet2-VPN" {
   }
 
   vpn_client_configuration {
-    address_space        = ["172.16.0.0/24"]
-    vpn_client_protocols = ["SSTP", "IkeV2"]
+    address_space = ["172.16.0.0/24"]
+    vpn_client_protocols = ["SSTP","IkeV2"]
 
     root_certificate {
       name = "ETS-RootCert.pfx"
@@ -156,233 +154,252 @@ EOF
   }
 }
 
+
+
+
 # Create network interface
 resource "azurerm_network_interface" "DC_Highgarden_Nic" {
-  name                      = "DC_Highgarden_nic"
-  location                  = "${var.region}"
-  resource_group_name       = "${var.resource_group}"
-  network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
+    name                      = "DC_Highgarden_nic"
+    location                  = "${var.region}"
+    resource_group_name       = "${azurerm_resource_group.igition2019lab.name}"
+    network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
 
-  ip_configuration {
-    name                          = "myNicConfiguration"
-    subnet_id                     = "${azurerm_subnet.Highgarden.id}"
-    private_ip_address_allocation = "static"
-    private_ip_address            = "10.1.0.10"
-    public_ip_address_id          = "${azurerm_public_ip.DC_Highgarden_pub.id}"
-  }
+    ip_configuration {
+        name                          = "myNicConfiguration"
+        subnet_id                     = "${azurerm_subnet.Highgarden.id}"
+        private_ip_address_allocation = "static"
+        private_ip_address            = "10.1.0.10"
+        public_ip_address_id          = "${azurerm_public_ip.DC_Highgarden_pub.id}"
+    }
 }
-
 resource "azurerm_public_ip" "DC_Highgarden_pub" {
-  name                = "DC_Highgarden_pub"
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
-  allocation_method   = "Static"
+    name                         = "DC_Highgarden_pub"
+    location                     = "${var.region}"
+    resource_group_name          = "${azurerm_resource_group.igition2019lab.name}"
+    allocation_method            = "Static"
 }
 
 resource "azurerm_network_interface" "Client_Highgarden_Nic" {
-  name                      = "Client_Highgarden_nic"
-  location                  = "${var.region}"
-  resource_group_name       = "${var.resource_group}"
-  network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
+    name                      = "Client_Highgarden_nic"
+    location                  = "${var.region}"
+    resource_group_name       = "${azurerm_resource_group.igition2019lab.name}"
+    network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
 
-  ip_configuration {
-    name                          = "myNicConfiguration"
-    subnet_id                     = "${azurerm_subnet.Highgarden.id}"
-    private_ip_address_allocation = "static"
-    private_ip_address            = "10.1.0.254"
-    public_ip_address_id          = "${azurerm_public_ip.Client_Highgarden_pub.id}"
-  }
+    ip_configuration {
+        name                          = "myNicConfiguration"
+        subnet_id                     = "${azurerm_subnet.Highgarden.id}"
+        private_ip_address_allocation = "static"
+        private_ip_address            = "10.1.0.254"
+        public_ip_address_id          = "${azurerm_public_ip.Client_Highgarden_pub.id}"
+    }
 }
 
 resource "azurerm_public_ip" "Client_Highgarden_pub" {
-  name                = "Client_Highgarden_pub"
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
-  allocation_method   = "Static"
+    name                         = "Client_Highgarden_pub"
+    location                     = "${var.region}"
+    resource_group_name          = "${azurerm_resource_group.igition2019lab.name}"
+    allocation_method            = "Static"
 }
 
 resource "azurerm_network_interface" "DC_TheSevenKingdoms_Nic" {
-  name                      = "DC_TheSevenKingdoms_Nic"
-  location                  = "${var.region}"
-  resource_group_name       = "${var.resource_group}"
-  network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
+    name                      = "DC_TheSevenKingdoms_Nic"
+    location                  = "${var.region}"
+    resource_group_name       = "${azurerm_resource_group.igition2019lab.name}"
+    network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
 
-  ip_configuration {
-    name                          = "myNicConfiguration"
-    subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
-    private_ip_address_allocation = "static"
-    private_ip_address            = "10.2.0.10"
-    public_ip_address_id          = "${azurerm_public_ip.DC_TheSevenKingdoms_pub.id}"
-  }
+    ip_configuration {
+        name                          = "myNicConfiguration"
+        subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
+        private_ip_address_allocation = "static"
+        private_ip_address            = "10.2.0.10"
+        public_ip_address_id          = "${azurerm_public_ip.DC_TheSevenKingdoms_pub.id}"
+    }
 }
 
 resource "azurerm_public_ip" "DC_TheSevenKingdoms_pub" {
-  name                = "DC_TheSevenKingdoms_pub"
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
-  allocation_method   = "Static"
+    name                         = "DC_TheSevenKingdoms_pub"
+    location                     = "${var.region}"
+    resource_group_name          = "${azurerm_resource_group.igition2019lab.name}"
+    allocation_method            = "Static"
 }
 
 resource "azurerm_network_interface" "SQL_TheSevenKingdoms" {
-  name                      = "SQL_TheSevenKingdoms"
-  location                  = "${var.region}"
-  resource_group_name       = "${var.resource_group}"
-  network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
+    name                      = "SQL_TheSevenKingdoms"
+    location                  = "${var.region}"
+    resource_group_name       = "${azurerm_resource_group.igition2019lab.name}"
+    network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
 
-  ip_configuration {
-    name                          = "myNicConfiguration"
-    subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
-    private_ip_address_allocation = "static"
-    private_ip_address            = "10.2.0.103"
-    public_ip_address_id          = "${azurerm_public_ip.SQL_TheSevenKingdoms_pub.id}"
-  }
+    ip_configuration {
+        name                          = "myNicConfiguration"
+        subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
+        private_ip_address_allocation = "static"
+        private_ip_address            = "10.2.0.103"
+        public_ip_address_id          = "${azurerm_public_ip.SQL_TheSevenKingdoms_pub.id}"
+    }
 }
-
 resource "azurerm_public_ip" "SQL_TheSevenKingdoms_pub" {
-  name                = "SQL_TheSevenKingdoms"
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
-  allocation_method   = "Static"
+    name                         = "SQL_TheSevenKingdoms"
+    location                     = "${var.region}"
+    resource_group_name          = "${azurerm_resource_group.igition2019lab.name}"
+    allocation_method            = "Static"
 }
 
 resource "azurerm_network_interface" "Exchange2010_TheSevenKingdoms" {
-  name                      = "Exchange2010_TheSevenKingdoms"
-  location                  = "${var.region}"
-  resource_group_name       = "${var.resource_group}"
-  network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
+    name                      = "Exchange2010_TheSevenKingdoms"
+    location                  = "${var.region}"
+    resource_group_name       = "${azurerm_resource_group.igition2019lab.name}"
+    network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
 
-  ip_configuration {
-    name                          = "myNicConfiguration"
-    subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
-    private_ip_address_allocation = "static"
-    private_ip_address            = "10.2.0.101"
-    public_ip_address_id          = "${azurerm_public_ip.Exchange2010_TheSevenKingdoms_pub.id}"
-  }
+    ip_configuration {
+        name                          = "myNicConfiguration"
+        subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
+        private_ip_address_allocation = "static"
+        private_ip_address            = "10.2.0.101"
+        public_ip_address_id          = "${azurerm_public_ip.Exchange2010_TheSevenKingdoms_pub.id}"
+    }
 }
-
 resource "azurerm_public_ip" "Exchange2010_TheSevenKingdoms_pub" {
-  name                = "Exchange2010_TheSevenKingdoms"
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
-  allocation_method   = "Static"
+    name                         = "Exchange2010_TheSevenKingdoms"
+    location                     = "${var.region}"
+    resource_group_name          = "${azurerm_resource_group.igition2019lab.name}"
+    allocation_method            = "Static"
 }
 
-resource "azurerm_network_interface" "Exchange2013_TheSevenKingdoms" {
-  name                      = "Exchange2013_TheSevenKingdoms"
-  location                  = "${var.region}"
-  resource_group_name       = "${var.resource_group}"
-  network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
+resource "azurerm_network_interface" "Exchange16_TheSevenKingdoms" {
+    name                      = "Exchange16_TheSevenKingdoms"
+    location                  = "${var.region}"
+    resource_group_name       = "${azurerm_resource_group.igition2019lab.name}"
+    network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
 
-  ip_configuration {
-    name                          = "myNicConfiguration"
-    subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
-    private_ip_address_allocation = "static"
-    private_ip_address            = "10.2.0.100"
-    public_ip_address_id          = "${azurerm_public_ip.Exchange2013_TheSevenKingdoms_pub.id}"
-  }
+    ip_configuration {
+        name                          = "myNicConfiguration"
+        subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
+        private_ip_address_allocation = "static"
+        private_ip_address            = "10.2.0.100"
+        public_ip_address_id          = "${azurerm_public_ip.Exchange16_TheSevenKingdoms_pub.id}"
+    }
 }
-
-resource "azurerm_public_ip" "Exchange2013_TheSevenKingdoms_pub" {
-  name                = "Exchange2013_TheSevenKingdoms"
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
-  allocation_method   = "Static"
+resource "azurerm_public_ip" "Exchange16_TheSevenKingdoms_pub" {
+    name                         = "Exchange16_TheSevenKingdoms"
+    location                     = "${var.region}"
+    resource_group_name          = "${azurerm_resource_group.igition2019lab.name}"
+    allocation_method            = "Static"
 }
 
 resource "azurerm_network_interface" "DC_NorthVale_Nic" {
-  name                      = "DC_NorthVale"
-  location                  = "${var.region}"
-  resource_group_name       = "${var.resource_group}"
-  network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
+    name                      = "DC_NorthVale"
+    location                  = "${var.region}"
+    resource_group_name       = "${azurerm_resource_group.igition2019lab.name}"
+    network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
 
-  ip_configuration {
-    name                          = "myNicConfiguration"
-    subnet_id                     = "${azurerm_subnet.NorthVale.id}"
-    private_ip_address_allocation = "static"
-    private_ip_address            = "10.3.0.10"
-    public_ip_address_id          = "${azurerm_public_ip.DC_NorthVale_pub.id}"
-  }
+    ip_configuration {
+        name                          = "myNicConfiguration"
+        subnet_id                     = "${azurerm_subnet.NorthVale.id}"
+        private_ip_address_allocation = "static"
+        private_ip_address            = "10.3.0.10"
+        public_ip_address_id          = "${azurerm_public_ip.DC_NorthVale_pub.id}"
+    }
 }
-
 resource "azurerm_public_ip" "DC_NorthVale_pub" {
-  name                = "DC_NorthVale_pub"
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
-  allocation_method   = "Static"
+    name                         = "DC_NorthVale_pub"
+    location                     = "${var.region}"
+    resource_group_name          = "${azurerm_resource_group.igition2019lab.name}"
+    allocation_method            = "Static"
 }
 
 resource "azurerm_network_interface" "App_TheSevenKingdoms_Nic" {
-  name                      = "App_TheSevenKingdoms_Nic"
-  location                  = "${var.region}"
-  resource_group_name       = "${var.resource_group}"
-  network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
+    name                      = "App_TheSevenKingdoms_Nic"
+    location                  = "${var.region}"
+    resource_group_name       = "${azurerm_resource_group.igition2019lab.name}"
+    network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
 
-  ip_configuration {
-    name                          = "myNicConfiguration"
-    subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
-    private_ip_address_allocation = "static"
-    private_ip_address            = "10.2.0.105"
-    public_ip_address_id          = "${azurerm_public_ip.App_TheSevenKingdoms_pub.id}"
-  }
+    ip_configuration {
+        name                          = "myNicConfiguration"
+        subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
+        private_ip_address_allocation = "static"
+        private_ip_address            = "10.2.0.105"
+        public_ip_address_id          = "${azurerm_public_ip.App_TheSevenKingdoms_pub.id}"
+    }
 }
-
 resource "azurerm_public_ip" "App_TheSevenKingdoms_pub" {
-  name                = "App_TheSevenKingdoms_pub"
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
-  allocation_method   = "Static"
+    name                         = "App_TheSevenKingdoms_pub"
+    location                     = "${var.region}"
+    resource_group_name          = "${azurerm_resource_group.igition2019lab.name}"
+    allocation_method            = "Static"
 }
 
 resource "azurerm_network_interface" "SCCM_TheSevenKingdoms_Nic" {
-  name                      = "SCCM_TheSevenKingdoms_Nic"
-  location                  = "${var.region}"
-  resource_group_name       = "${var.resource_group}"
-  network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
+    name                      = "SCCM_TheSevenKingdoms_Nic"
+    location                  = "${var.region}"
+    resource_group_name       = "${azurerm_resource_group.igition2019lab.name}"
+    network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
 
-  ip_configuration {
-    name                          = "myNicConfiguration"
-    subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
-    private_ip_address_allocation = "static"
-    private_ip_address            = "10.2.0.102"
-    public_ip_address_id          = "${azurerm_public_ip.SCCM_TheSevenKingdoms_pub.id}"
-  }
+    ip_configuration {
+        name                          = "myNicConfiguration"
+        subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
+        private_ip_address_allocation = "static"
+        private_ip_address            = "10.2.0.102"
+        public_ip_address_id          = "${azurerm_public_ip.SCCM_TheSevenKingdoms_pub.id}"
+    }
 }
-
 resource "azurerm_public_ip" "SCCM_TheSevenKingdoms_pub" {
-  name                = "SCCM_TheSevenKingdoms_pub"
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
-  allocation_method   = "Static"
+    name                         = "SCCM_TheSevenKingdoms_pub"
+    location                     = "${var.region}"
+    resource_group_name          = "${azurerm_resource_group.igition2019lab.name}"
+    allocation_method            = "Static"
 }
 
 resource "azurerm_network_interface" "Client_TheSevenKingdoms_Nic" {
-  name                      = "Client_TheSevenKingdoms_Nic"
-  location                  = "${var.region}"
-  resource_group_name       = "${var.resource_group}"
-  network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
+    name                      = "Client_TheSevenKingdoms_Nic"
+    location                  = "${var.region}"
+    resource_group_name       = "${azurerm_resource_group.igition2019lab.name}"
+    network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
 
-  ip_configuration {
-    name                          = "myNicConfiguration"
-    subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
-    private_ip_address_allocation = "static"
-    private_ip_address            = "10.2.0.254"
-    public_ip_address_id          = "${azurerm_public_ip.Client_TheSevenKingdoms_pub.id}"
-  }
+    ip_configuration {
+        name                          = "myNicConfiguration"
+        subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
+        private_ip_address_allocation = "static"
+        private_ip_address            = "10.2.0.254"
+        public_ip_address_id          = "${azurerm_public_ip.Client_TheSevenKingdoms_pub.id}"
+    }
 }
 
 resource "azurerm_public_ip" "Client_TheSevenKingdoms_pub" {
-  name                = "Client_TheSevenKingdoms_pub"
-  location            = "${var.region}"
-  resource_group_name = "${var.resource_group}"
-  allocation_method   = "Static"
+    name                         = "Client_TheSevenKingdoms_pub"
+    location                     = "${var.region}"
+    resource_group_name          = "${azurerm_resource_group.igition2019lab.name}"
+    allocation_method            = "Static"
 }
+
+resource "azurerm_network_interface" "Quest_TheSevenKingdoms_Nic" {
+    name                      = "Quest_TheSevenKingdoms_Nic"
+    location                  = "${var.region}"
+    resource_group_name       = "${azurerm_resource_group.igition2019lab.name}"
+    network_security_group_id = "${azurerm_network_security_group.Default_NSG.id}"
+
+    ip_configuration {
+        name                          = "myNicConfiguration"
+        subnet_id                     = "${azurerm_subnet.TheSevenKingdoms.id}"
+        private_ip_address_allocation = "static"
+        private_ip_address            = "10.2.0.106"
+        public_ip_address_id          = "${azurerm_public_ip.Quest_TheSevenKingdoms_pub.id}"
+    }
+}
+
+resource "azurerm_public_ip" "Quest_TheSevenKingdoms_pub" {
+    name                         = "Quest_TheSevenKingdoms_pub"
+    location                     = "${var.region}"
+    resource_group_name          = "${azurerm_resource_group.igition2019lab.name}"
+    allocation_method            = "Static"
+}
+
 
 # Create virtual machine
 
 resource "azurerm_virtual_machine" "DC_Highgarden" {
   name                  = "DC_Highgarden"
   location              = "${var.region}"
-  resource_group_name   = "${var.resource_group}"
+  resource_group_name   = "${azurerm_resource_group.igition2019lab.name}"
   network_interface_ids = ["${azurerm_network_interface.DC_Highgarden_Nic.id}"]
   vm_size               = "${var.small_instance}"
 
@@ -401,23 +418,27 @@ resource "azurerm_virtual_machine" "DC_Highgarden" {
   }
 
   os_profile {
-    computer_name  = "DCHighgarden"
-    admin_username = "ignition"
-    admin_password = "Ignition2019"
+
+    computer_name      = "DCHighgarden"
+    admin_username     = "ignition"
+    admin_password     = "Ignition2019"
+
   }
 
-  os_profile_windows_config {}
+  os_profile_windows_config {
+  }
+
 }
 
 resource "azurerm_virtual_machine" "Client_Highgarden" {
-  name                          = "Client_Highgarden"
-  location                      = "${var.region}"
-  resource_group_name           = "${var.resource_group}"
-  network_interface_ids         = ["${azurerm_network_interface.Client_Highgarden_Nic.id}"]
-  vm_size                       = "${var.small_instance}"
-  delete_os_disk_on_termination = "false"
+    name                          = "Client_Highgarden"
+    location                      = "${var.region}"
+    resource_group_name           = "${azurerm_resource_group.igition2019lab.name}"
+    network_interface_ids         = ["${azurerm_network_interface.Client_Highgarden_Nic.id}"]
+    vm_size                       = "${var.small_instance}"
+    delete_os_disk_on_termination = "false"
 
-  storage_image_reference {
+    storage_image_reference {
     publisher = "MicrosoftWindowsDesktop"
     offer     = "Windows-10"
     sku       = "rs5-pro"
@@ -432,18 +453,21 @@ resource "azurerm_virtual_machine" "Client_Highgarden" {
   }
 
   os_profile {
-    computer_name  = "ClientHighgard"
-    admin_username = "ignition"
-    admin_password = "Ignition2019"
+    computer_name      = "ClientHighgard"
+    admin_username     = "ignition"
+    admin_password     = "Ignition2019"
+
   }
 
-  os_profile_windows_config {}
+  os_profile_windows_config {
+  }
+
 }
 
 resource "azurerm_virtual_machine" "DC_TheSevenKingdoms" {
   name                  = "DC_TheSevenKingdoms"
   location              = "${var.region}"
-  resource_group_name   = "${var.resource_group}"
+  resource_group_name   = "${azurerm_resource_group.igition2019lab.name}"
   network_interface_ids = ["${azurerm_network_interface.DC_TheSevenKingdoms_Nic.id}"]
   vm_size               = "${var.small_instance}"
 
@@ -462,18 +486,22 @@ resource "azurerm_virtual_machine" "DC_TheSevenKingdoms" {
   }
 
   os_profile {
-    computer_name  = "DCSevenKingdom"
-    admin_username = "ignition"
-    admin_password = "Ignition2019"
+
+    computer_name      = "DCSevenKingdom"
+    admin_username     = "ignition"
+    admin_password     = "Ignition2019"
+
   }
 
-  os_profile_windows_config {}
+  os_profile_windows_config {
+  }
+
 }
 
 resource "azurerm_virtual_machine" "SQL_TheSevenKingdoms" {
   name                  = "SQL_TheSevenKingdoms"
   location              = "${var.region}"
-  resource_group_name   = "${var.resource_group}"
+  resource_group_name   = "${azurerm_resource_group.igition2019lab.name}"
   network_interface_ids = ["${azurerm_network_interface.SQL_TheSevenKingdoms.id}"]
   vm_size               = "${var.small_instance}"
 
@@ -492,18 +520,22 @@ resource "azurerm_virtual_machine" "SQL_TheSevenKingdoms" {
   }
 
   os_profile {
-    computer_name  = "SQLSeven"
-    admin_username = "ignition"
-    admin_password = "Ignition2019"
+
+    computer_name      = "SQLSeven"
+    admin_username     = "ignition"
+    admin_password     = "Ignition2019"
+
   }
 
-  os_profile_windows_config {}
+  os_profile_windows_config {
+  }
+
 }
 
 resource "azurerm_virtual_machine" "Exchange2010_TheSevenKingdoms" {
   name                  = "Exchange2010_TheSevenKingdoms"
   location              = "${var.region}"
-  resource_group_name   = "${var.resource_group}"
+  resource_group_name   = "${azurerm_resource_group.igition2019lab.name}"
   network_interface_ids = ["${azurerm_network_interface.Exchange2010_TheSevenKingdoms.id}"]
   vm_size               = "${var.small_instance}"
 
@@ -522,48 +554,56 @@ resource "azurerm_virtual_machine" "Exchange2010_TheSevenKingdoms" {
   }
 
   os_profile {
-    computer_name  = "Exchange10Seven"
-    admin_username = "ignition"
-    admin_password = "Ignition2019"
+
+    computer_name      = "Exchange10Seven"
+    admin_username     = "ignition"
+    admin_password     = "Ignition2019"
+
   }
 
-  os_profile_windows_config {}
+  os_profile_windows_config {
+  }
+
 }
 
-resource "azurerm_virtual_machine" "Exchange2013_TheSevenKingdoms" {
-  name                  = "Exchange2013_TheSevenKingdoms"
+resource "azurerm_virtual_machine" "Exchange16_TheSevenKingdoms" {
+  name                  = "Exchange16_TheSevenKingdoms"
   location              = "${var.region}"
-  resource_group_name   = "${var.resource_group}"
-  network_interface_ids = ["${azurerm_network_interface.Exchange2013_TheSevenKingdoms.id}"]
-  vm_size               = "${var.small_instance}"
+  resource_group_name   = "${azurerm_resource_group.igition2019lab.name}"
+  network_interface_ids = ["${azurerm_network_interface.Exchange16_TheSevenKingdoms.id}"]
+  vm_size               = "${var.large_instance}"
 
   storage_image_reference {
     publisher = "MicrosoftWindowsServer"
     offer     = "WindowsServer"
-    sku       = "2012-R2-Datacenter"
+    sku       = "2016-Datacenter"
     version   = "latest"
   }
 
   storage_os_disk {
-    name              = "Exchange2013_TheSevenKingdoms_disk"
+    name              = "Exchange16_TheSevenKingdoms_disk"
     caching           = "ReadWrite"
     create_option     = "FromImage"
     managed_disk_type = "Standard_LRS"
   }
 
   os_profile {
-    computer_name  = "Exchange13Seven"
-    admin_username = "ignition"
-    admin_password = "Ignition2019"
+
+    computer_name      = "Exchange16"
+    admin_username     = "ignition"
+    admin_password     = "Ignition2019"
+
   }
 
-  os_profile_windows_config {}
+  os_profile_windows_config {
+  }
+
 }
 
 resource "azurerm_virtual_machine" "DC_NorthVale" {
   name                  = "DC_NorthVale"
   location              = "${var.region}"
-  resource_group_name   = "${var.resource_group}"
+  resource_group_name   = "${azurerm_resource_group.igition2019lab.name}"
   network_interface_ids = ["${azurerm_network_interface.DC_NorthVale_Nic.id}"]
   vm_size               = "${var.small_instance}"
 
@@ -582,18 +622,22 @@ resource "azurerm_virtual_machine" "DC_NorthVale" {
   }
 
   os_profile {
-    computer_name  = "DCNorthVale"
-    admin_username = "ignition"
-    admin_password = "Ignition2019"
+
+    computer_name      = "DCNorthVale"
+    admin_username     = "ignition"
+    admin_password     = "Ignition2019"
+
   }
 
-  os_profile_windows_config {}
+  os_profile_windows_config {
+  }
+
 }
 
 resource "azurerm_virtual_machine" "App_TheSevenKingdoms" {
   name                  = "App_TheSevenKingdoms"
   location              = "${var.region}"
-  resource_group_name   = "${var.resource_group}"
+  resource_group_name   = "${azurerm_resource_group.igition2019lab.name}"
   network_interface_ids = ["${azurerm_network_interface.App_TheSevenKingdoms_Nic.id}"]
   vm_size               = "${var.small_instance}"
 
@@ -612,18 +656,22 @@ resource "azurerm_virtual_machine" "App_TheSevenKingdoms" {
   }
 
   os_profile {
-    computer_name  = "App"
-    admin_username = "ignition"
-    admin_password = "Ignition2019"
+
+    computer_name      = "App"
+    admin_username     = "ignition"
+    admin_password     = "Ignition2019"
+
   }
 
-  os_profile_windows_config {}
+  os_profile_windows_config {
+  }
+
 }
 
 resource "azurerm_virtual_machine" "SCCM_TheSevenKingdoms" {
   name                  = "SCCM_TheSevenKingdoms"
   location              = "${var.region}"
-  resource_group_name   = "${var.resource_group}"
+  resource_group_name   = "${azurerm_resource_group.igition2019lab.name}"
   network_interface_ids = ["${azurerm_network_interface.SCCM_TheSevenKingdoms_Nic.id}"]
   vm_size               = "${var.large_instance}"
 
@@ -642,23 +690,27 @@ resource "azurerm_virtual_machine" "SCCM_TheSevenKingdoms" {
   }
 
   os_profile {
-    computer_name  = "SCCM"
-    admin_username = "ignition"
-    admin_password = "Ignition2019"
+
+    computer_name      = "SCCM"
+    admin_username     = "ignition"
+    admin_password     = "Ignition2019"
+
   }
 
-  os_profile_windows_config {}
+  os_profile_windows_config {
+  }
+
 }
 
 resource "azurerm_virtual_machine" "Client_TheSevenKingdoms" {
-  name                          = "Client_TheSevenKingdoms"
-  location                      = "${var.region}"
-  resource_group_name           = "${var.resource_group}"
-  network_interface_ids         = ["${azurerm_network_interface.Client_TheSevenKingdoms_Nic.id}"]
-  vm_size                       = "${var.small_instance}"
-  delete_os_disk_on_termination = "false"
+    name                          = "Client_TheSevenKingdoms"
+    location                      = "${var.region}"
+    resource_group_name           = "${azurerm_resource_group.igition2019lab.name}"
+    network_interface_ids         = ["${azurerm_network_interface.Client_TheSevenKingdoms_Nic.id}"]
+    vm_size                       = "${var.small_instance}"
+    delete_os_disk_on_termination = "false"
 
-  storage_image_reference {
+    storage_image_reference {
     publisher = "MicrosoftWindowsDesktop"
     offer     = "Windows-10"
     sku       = "rs5-pro"
@@ -673,10 +725,13 @@ resource "azurerm_virtual_machine" "Client_TheSevenKingdoms" {
   }
 
   os_profile {
-    computer_name  = "ClientSeven"
-    admin_username = "ignition"
-    admin_password = "Ignition2019"
+    computer_name      = "ClientSeven"
+    admin_username     = "ignition"
+    admin_password     = "Ignition2019"
+
   }
 
-  os_profile_windows_config {}
+  os_profile_windows_config {
+  }
+
 }
