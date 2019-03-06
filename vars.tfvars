@@ -1,0 +1,5 @@
+subscription_id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+region          = "centralus"
+small_instance  = "Standard_B2s"
+large_instance  = "Standard_D2s_v3" 
+resource_group  = "Ingition-Production"
